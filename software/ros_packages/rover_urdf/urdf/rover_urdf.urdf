@@ -266,7 +266,6 @@ Urdf for the rover of the DAM Robotics Rover triple bogie system.
     <child link="rover_arm_jaws_link"/>
     <origin rpy="0 0 0" xyz="0 0 0.23"/>
   </joint>
-<<<<<<< HEAD:software/ros_packages/rover_arm_urdf/urdf/rover_arm.urdf
 
 
 <link name="camera_left_chassis">
@@ -306,7 +305,4 @@ Urdf for the rover of the DAM Robotics Rover triple bogie system.
 </joint>
 
 
-=======
-  <!-- Arm option for gripper -->
->>>>>>> 0acef82 (Clean rover_arm setup and rover_urdf clean up):software/ros_packages/rover_urdf/urdf/rover_urdf.urdf
 </robot>

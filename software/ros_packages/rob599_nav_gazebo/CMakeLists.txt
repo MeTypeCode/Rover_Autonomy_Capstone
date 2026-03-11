@@ -41,6 +41,8 @@ ament_target_dependencies(${lib_name}
   nav_msgs
   sensor_msgs
   laser_geometry
+  pcl_conversions
+  pcl_ros
 )
 
 pluginlib_export_plugin_description_file(

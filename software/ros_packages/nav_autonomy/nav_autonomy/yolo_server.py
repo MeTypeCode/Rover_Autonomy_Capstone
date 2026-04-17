@@ -24,7 +24,7 @@ from builtin_interfaces.msg import Time
 # TF2
 from tf2_ros import Buffer, TransformListener
 import tf2_geometry_msgs
-from geometry_msgs.msg import TransformStamped, PoseStamped
+from geometry_msgs.msg import TransformStamped, PoseStamped, Pose
 
 # YOLO specific
 from ultralytics import YOLO

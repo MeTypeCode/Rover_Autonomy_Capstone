@@ -33,6 +33,7 @@ def generate_launch_description():
         parameters=[{
             "camera_name": "d455",
             "serial_no": "318122302525",
+<<<<<<< HEAD
 
             "depth_module.depth_profile": "424x240x30", # Camera depth fps caps out around 15. Setting this to 20 just makes camera info publish faster = easier sync for nodes down the line
                                                         # Note: enabling filtering ignores fps cap and defaults to 30
@@ -49,6 +50,28 @@ def generate_launch_description():
             "decimation_filter.filter_magnitude": 4,
             "spatial_filter.enable": True,
             "spatial_filter.holes_fill": 1,
+=======
+            # "depth_module.depth_profile": "424x240x5",  
+            # "depth_module.infra_profile": "424x240x5", 
+            # "rgb_camera.color_profile": "424x240x5",
+            
+            # Test for better costmap clearing
+            #"depth_module.profile": "848x480x15",
+            #"rgb_camera.profile": "848x480x15",
+            # "depth_module.emitter_enabled": True, 
+            # "depth_module.laser_power": 360,
+            # "depth_module.enable_auto_exposure": True,
+            # "pointcloud.enable": False,
+
+            "depth_width": 1280,
+            "depth_height": 720,
+            "color_width": 1280,
+            "color_height": 720,
+            "pointcloud.enable": True,
+            "align_depth.enable": True,
+            "depth_fps": 10,
+            "rgb_fps": 10,
+>>>>>>> 7187e30 (working object localization with 1 camera)
         }],
         output='screen'
     ) 

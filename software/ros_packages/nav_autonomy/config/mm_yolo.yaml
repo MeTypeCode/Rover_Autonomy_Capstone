@@ -1,0 +1,16 @@
+yolo_server:
+  ros_parameters:
+    confidence_topic: "yolo/confidence"   # shared with mission_manager
+    num_cameras: 1
+    source: "/dev/rover/camera_infrared"
+    stop_threshold: 0.85
+    check_threshold: 0.60
+    max_frames: 25
+    check_frames: 10
+    camera_carousel: [0]
+
+mission_manager:
+  ros_parameters:
+    confidence_topic: "yolo/confidence"   # shared with yolo_server
+    success_threshold: 0.9
+    investigate_threshold: 0.7

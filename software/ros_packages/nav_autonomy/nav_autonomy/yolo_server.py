@@ -53,8 +53,12 @@ class YoloServer(Node):
 
         self.get_logger().info("YoloServer action server ready.")
 
-        # TODO: Parameterize these as ROS2 params
         # ROS2 Parameters
+        self.declare_parameter(
+            "confidence_topic",
+            "yolo/confidence",
+            ParameterDescriptor(description="Topic name for publishing detection confidence"),
+        )
         self.declare_parameter(
             "num_cameras",
             1,
@@ -104,6 +108,7 @@ class YoloServer(Node):
         )
 
         # Internal Parameters
+        self.confidence_topic = self.get_parameter("confidence_topic").value
         self.num_cameras = self.get_parameter("num_cameras").value
         self.source = self.get_parameter("source").value
         self.quit = False
@@ -194,7 +199,8 @@ class YoloServer(Node):
         self.yc = None
         
         cap = None  # Declare here so except block can access it
-
+        
+        feedback = YoloFind.Feedback()
 
         try:
             # ==============================
@@ -283,7 +289,7 @@ class YoloServer(Node):
                             # Show final frame before breaking
                             cv2.imshow("YOLO Detection", display_frame)
                             cv2.waitKey(1)
-                            break
+                            #break
 
 
                         center, top_left, bottom_right = self.get_points()
@@ -322,22 +328,23 @@ class YoloServer(Node):
                 # ==============================
                 # Complete action
                 # ==============================
-                if not self.quit:
-                    if self.xc and self.yc:
-                        center, top_left, bottom_right = self.get_points() 
+                # if not self.quit:
+                #     if self.xc and self.yc:
+                #         center, top_left, bottom_right = self.get_points() 
 
-                        self.get_logger().info("Yolo search completed")
-                        goal_handle.succeed()
-                        result = YoloFind.Result()
-                        result.header = Header()
-                        result.ack = YoloFind.Result.SUCCESS
-                        result.center = center
-                        result.top_left = top_left
-                        result.bottom_right = bottom_right
-                        self.busy = False
-                        return result
-                    else:
-                        return None
+                #         self.get_logger().info("Yolo search completed")
+                #         goal_handle.succeed()
+                #         result = YoloFind.Result()
+                #         result.header = Header()
+                #         result.ack = YoloFind.Result.SUCCESS
+                #         result.center = center
+                #         result.top_left = top_left
+                #         result.bottom_right = bottom_right
+                #         self.busy = False
+                #         return result
+                #     else:
+                #         return None
+                
         except ActionCanceled:
             self.get_logger().info("Yolo search canceled")
             result = YoloFind.Result()

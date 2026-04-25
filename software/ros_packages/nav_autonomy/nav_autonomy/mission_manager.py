@@ -9,6 +9,7 @@ from rclpy.node import Node
 from rclpy.action import ActionServer, CancelResponse, GoalResponse, ActionClient
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
+from rcl_interfaces.msg import ParameterDescriptor
 from nav2_simple_commander.robot_navigator import BasicNavigator
 from robot_localization.srv import FromLL
 
@@ -49,6 +50,13 @@ class MissionManager(Node):
 
         self.callback_group = ReentrantCallbackGroup()
 
+        self.declare_parameter(
+            "confidence_topic",
+            "yolo/confidence",
+            ParameterDescriptor(description="Topic name for receiving detection confidence"),
+        )
+        self.confidence_topic = self.get_parameter("confidence_topic").value
+
         self.navigator = BasicNavigator("basic_navigator")
         self.fromLL_client = self.navigator.create_client(FromLL, '/fromLL')
         self.waypoints: List[PoseStamped] = []  
@@ -64,9 +72,9 @@ class MissionManager(Node):
         )
 
         self.search_fsm = SearchFSM(
-            node=self, 
-            navigator=self.navigator, 
-            confidence_topic="yolo/confidence", 
+            node=self,
+            navigator=self.navigator,
+            confidence_topic=self.confidence_topic,
             status_topic="search/status"
         )
 

@@ -3,6 +3,7 @@ from typing import List
 from std_msgs.msg import Float32, String
 from geometry_msgs.msg import PoseStamped
 from nav2_simple_commander.robot_navigator import TaskResult
+from action_msgs.msg import GoalStatusArray, GoalStatus
 from nav_autonomy.utils.search_patterns import spiral, lawnmower
 from visualization_msgs.msg import Marker, MarkerArray
 import time
@@ -17,7 +18,7 @@ class SearchState(Enum):
     IDLE = auto()
     MOVING_TO_START = auto()
     SEARCHING = auto()
-    INVESTIGATION_PENDING = auto()
+    WAITING_FOR_NAV_IDLE = auto()
     INVESTIGATING = auto()
     RETURNING_TO_SEARCH = auto()
     SUCCESS = auto()
@@ -32,6 +33,7 @@ class SearchFSM:
         self.navigator = navigator
 
         self.state = SearchState.IDLE
+        self._next_state_on_idle = None
         self.active = False
         
         self.pattern = SearchPattern.NONE
@@ -47,6 +49,9 @@ class SearchFSM:
         self.last_detection_time = None
         self.detection_timeout_ms = 8000.0
         
+        self.bt_navigator_idle = True
+        self.bt_status_sub = node.create_subscription(GoalStatusArray, '/navigate_to_pose/_action/status', self._bt_status_callback, 10)
+
         self.status_pub = node.create_publisher(String, status_topic, 10)
         self.debug_marker_pub = node.create_publisher(MarkerArray, dbg_marker_topic, 10) if debug_markers else None
 
@@ -91,21 +96,28 @@ class SearchFSM:
         if not self.active:
             return
 
-        # spin until cancelTask is complete then start investigation
-        if self.state == SearchState.INVESTIGATION_PENDING:
-        # if self.investigate_theshold_met:
-            self.node.get_logger().info(f"We are investigate pending ONCE")
-            if self.navigator.isTaskComplete():
-                self._to_investigate()
+        # Sending a new goal to the navigator while it's still tearing down previous 
+        # task can cause a race condition where new goal is instantly aborted.
+        # We wait until bt_nav is idle before sending the next pose.
+        if self.state == SearchState.WAITING_FOR_NAV_IDLE:
+            if self.bt_navigator_idle:
+                next_state = self._next_state_on_idle
+                self._next_state_on_idle = None
+                if next_state == SearchState.INVESTIGATING:
+                    self._to_investigate()
+                elif next_state == SearchState.RETURNING_TO_SEARCH:
+                    self._return_to_search()
             return
 
-        # If we've been investigating for too long without a yolo detection, return to search
+        # If we've been investigating for too long without a yolo detection, 
+        # probablly a false positive, return to search.
         if self.state == SearchState.INVESTIGATING and self.last_detection_time is not None:
             time_since_detection = (self.node.get_clock().now() - self.last_detection_time).nanoseconds / 1e6 # convert to milliseconds
             if time_since_detection > self.detection_timeout_ms:
-                self.node.get_logger().warn(f"INVESTIGATION: Haven't seen target in {time_since_detection:.1f}, returning to search.")
+                self.node.get_logger().warn(f"[Investigate]: Haven't seen target in {time_since_detection:.1f}, returning to search.")
+                self._next_state_on_idle = SearchState.RETURNING_TO_SEARCH
+                self.state = SearchState.WAITING_FOR_NAV_IDLE
                 self.navigator.cancelTask()
-                self._return_to_search()
                 return
         
         if self.navigator.isTaskComplete():
@@ -117,23 +129,20 @@ class SearchFSM:
     def update_perception(self, confidence: float, target_pose: PoseStamped):
         if not self.active:
             return
-
         if target_pose is None:
-            self.node.get_logger().warning(f"Perception update: no target pose, how'd that happen?")
             return
 
-        
         self.node.get_logger().info(f"[Perception]: Updating confidence ({confidence})")
-        self.target_pose = target_pose
         self.last_detection_time = self.node.get_clock().now()
 
-        self._publish_dbg_waypoint_markers()
 
         if self.state == SearchState.SEARCHING and confidence >= self.investigate_threshold:
-            self.state = SearchState.INVESTIGATION_PENDING
-            # self.investigate_theshold_met = True
+            self.target_pose = target_pose
+            self._publish_dbg_waypoint_markers()
+
+            self._next_state_on_idle = SearchState.INVESTIGATING
+            self.state = SearchState.WAITING_FOR_NAV_IDLE
             self.navigator.cancelTask()
-            #self._to_investigate()
             return
         
         # WINNER: Object found, end everything.
@@ -174,7 +183,7 @@ class SearchFSM:
             case SearchState.INVESTIGATING:
                 # Handle goToPose feedback
                 if hasattr(nav_feedback, 'distance_remaining'):
-                    self.node.get_logger().info(f"Investigate: Dist to target: {nav_feedback.distance_remaining}")
+                    self.node.get_logger().info(f"[Investigate]: Dist to target: {nav_feedback.distance_remaining}")
                     pass
 
 
@@ -186,12 +195,8 @@ class SearchFSM:
         # If it was canceled, it's likely due to an investigation interrupt or return to search, so just wait for the next command.
         if result != TaskResult.SUCCEEDED:
             self.node.get_logger().info(f"Didn't succeed, checking if canceled: {result}")
-            # if result == TaskResult.FAILED:
-            #     self._to_investigate()
-
             if result != TaskResult.CANCELED:
                 self._to_failed()
-                
             return
 
         # Nav arrived at goal
@@ -204,7 +209,8 @@ class SearchFSM:
             # Arrived at suspected object's location but YOLO didn't confirm it
             case SearchState.INVESTIGATING:
                 self.node.get_logger().info("Reached investigation coordinates, but threshold not met.")
-                self._return_to_search()
+                self._next_state_on_idle = SearchState.RETURNING_TO_SEARCH
+                self.state = SearchState.WAITING_FOR_NAV_IDLE
                 
             # Arrived back to the search breakpoint, resume the search
             case SearchState.RETURNING_TO_SEARCH:
@@ -223,24 +229,17 @@ class SearchFSM:
 
 
     def _to_investigate(self):
-        #self.navigator.cancelTask()
-        # self.investigate_theshold_met = False
+        self.state = SearchState.INVESTIGATING
 
         resume_index = max(0, self.current_index - 1)
         self.resume_path = self.active_path[resume_index:]
-
-        self.state = SearchState.INVESTIGATING
         self._publish_state()
         
-        self.node.get_logger().info(f"Interrupt Triggered: Investigating target at X: {self.target_pose.pose.position.x:.2f}, Y: {self.target_pose.pose.position.y:.2f}")
-        self.node.get_logger().info(f"big sleeping")
-        time.sleep(1)
-        self.node.get_logger().info(f"Done big sleeping")
+        self.node.get_logger().info(f"[Investigating]: Target at X: {self.target_pose.pose.position.x:.2f}, Y: {self.target_pose.pose.position.y:.2f}")
+
         if not self.navigator.goToPose(self.target_pose):
             self.node.get_logger().error("Failed to accept goToPose for investigation.")
             self._to_failed()
-        else:
-            self.node.get_logger().warn("Accepted Investigate Point")
 
 
     def _return_to_search(self):
@@ -250,9 +249,6 @@ class SearchFSM:
 
         self._publish_state()
 
-        self.node.get_logger().info(f"big sleeping")
-        time.sleep(1)
-        self.node.get_logger().info(f"Done big sleeping")
         if self.resume_path:
             self.navigator.goToPose(self.resume_path[0])
         else:
@@ -270,6 +266,22 @@ class SearchFSM:
         msg.data = self.state.name
         self.status_pub.publish(msg)
         self.node.get_logger().info(f"[SearchFSM] State: {self.state.name}")
+
+
+    def _bt_status_callback(self, msg: GoalStatusArray):
+        if not self.active or self.state != SearchState.WAITING_FOR_NAV_IDLE:
+            return
+
+        if not msg.status_list:
+            self.bt_navigator_idle = True
+            return
+
+        # If any goal is active or pending, we're not idle
+        self.bt_navigator_idle = not any(status.status in [
+            GoalStatus.STATUS_ACCEPTED, 
+            GoalStatus.STATUS_CANCELING, 
+            GoalStatus.STATUS_EXECUTING
+        ] for status in msg.status_list)
 
 
     def _publish_dbg_waypoint_markers(self):
@@ -306,7 +318,7 @@ class SearchFSM:
             marker_array.markers.append(marker)
 
         # post current target
-        if self.target_pose is not None:
+        if self.target_pose:
             marker = Marker()
             marker.header.frame_id = 'map'
             marker.header.stamp = self.node.get_clock().now().to_msg()

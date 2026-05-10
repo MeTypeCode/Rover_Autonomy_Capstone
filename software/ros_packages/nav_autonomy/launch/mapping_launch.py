@@ -72,23 +72,23 @@ def generate_launch_description():
             remappings=remappings),
 
         # Custom point cloud publishing for local map
-        Node(
-            package='rtabmap_util', executable='point_cloud_xyz', output='screen',
-            parameters=[{'decimation': 2,
-                         'min_depth': 0.5,
-                         'max_depth': 6.0, #3.0,
-                         'voxel_size': 0.05, # match nav2 local_costmap resolution
-                         'noise_filter_radius': 0.1,
-                         'noise_filtering_min_neighbors': 10,
-                         'filter_nans': True
-                        }],
-            remappings=[('depth/image', '/camera/d455/aligned_depth_to_color/image_raw'),
-                        ('depth/camera_info', '/camera/d455/color/camera_info'),
-                        ('cloud', '/camera/cloud')]),
+        # Node(
+        #     package='rtabmap_util', executable='point_cloud_xyz', output='screen',
+        #     parameters=[{'decimation': 2,
+        #                  'min_depth': 0.5,
+        #                  'max_depth': 6.0, #3.0,
+        #                  'voxel_size': 0.05, # match nav2 local_costmap resolution
+        #                  'noise_filter_radius': 0.1,
+        #                  'noise_filtering_min_neighbors': 10,
+        #                  'filter_nans': True
+        #                 }],
+        #     remappings=[('depth/image', '/camera/d455/aligned_depth_to_color/image_raw'),
+        #                 ('depth/camera_info', '/camera/d455/color/camera_info'),
+        #                 ('cloud', '/camera/cloud')]),
         Node(
             package='rtabmap_util', executable='obstacles_detection', output='screen',
             parameters=[parameters],
-            remappings=[('cloud', '/camera/cloud'),     # /unilidar/cloud
+            remappings=[('cloud', '/unilidar/cloud'),     # TODO: this is straight, no filtering or decimation, is that ok?
                         ('obstacles', '/camera/obstacles'),
                         ('ground', '/camera/ground')]),
 

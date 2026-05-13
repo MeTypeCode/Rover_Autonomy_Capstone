@@ -1,0 +1,1 @@
+ ros2 action send_goal /YoloFind nav_autonomy_interface/action/YoloFind "{header: {stamp: {sec: 0, nanosec: 0}, frame_id: 'camera'}, search_object: 4, confidence_threshold: 0.2}" --feedback

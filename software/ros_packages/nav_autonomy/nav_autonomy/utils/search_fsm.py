@@ -138,6 +138,7 @@ class SearchFSM:
         
         # WINNER: Object found, end everything.
         if self.state == SearchState.INVESTIGATING and confidence >= self.success_threshold:
+            self.node.get_logger().info("WE DID IT")
             self.state = SearchState.SUCCESS
             self.active = False
             self.navigator.cancelTask()

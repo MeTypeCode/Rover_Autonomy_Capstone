@@ -282,7 +282,7 @@ class YoloServer(Node):
         
         return point_camera
 
-    def transform_to_nav_frame(self, point_camera, camera_id):
+    def transform_to_nav_frame(self, point_camera, camera_id, frame_time_stamp):
         """
         Transform point from camera frame to base_link frame
         
@@ -301,7 +301,7 @@ class YoloServer(Node):
             transform = self.tf_buffer.lookup_transform(
                 self.nav_frame,
                 camera_frame,
-                rclpy.time.Time(),
+                frame_time_stamp,
                 timeout=rclpy.duration.Duration(seconds=1.0)
             )
             # Create PoseStamped in camera frame
@@ -380,7 +380,7 @@ class YoloServer(Node):
 
         self.marker_pub.publish(marker)
 
-    def calc_detection_point(self, cam_idx, bbox_dims, xc, yc):
+    def calc_detection_point(self, cam_idx, bbox_dims, xc, yc, frame_time_stamp):
         # Estimate depth from bounding box size
         estimated_depth = self.estimate_depth_from_bbox(
             bbox_dims[0], 
@@ -404,7 +404,8 @@ class YoloServer(Node):
             # Transform to base_link frame
             pose_base = self.transform_to_nav_frame(
                 point_camera,
-                cam_idx
+                cam_idx,
+                frame_time_stamp
             )
             if pose_base is not None:
                 self.get_logger().info(f"Waypoint: {pose_base}")
@@ -559,6 +560,7 @@ class YoloServer(Node):
                 
                 # Get frame
                 ret, frame = cap.read()
+                frame_time_stamp = rclpy.time.Time()
                 if not ret:
                     self.get_logger().warn("Failed to read frame")
                     continue
@@ -586,7 +588,8 @@ class YoloServer(Node):
                     # Transform to map frame
                     pose = self.transform_to_nav_frame(
                         [x, y, z],             # KRJ TODO: is this the correct xy in camera frame?
-                        cam_idx
+                        cam_idx,
+                        frame_time_stamp
                     )
 
                     if pose is None:
@@ -674,6 +677,8 @@ class YoloServer(Node):
 
                 # Get Frame
                 ret, frame = cap.read()
+                frame_time_stamp = rclpy.time.Time()
+                
                 if not ret:
                     self.get_logger().warn("Failed to read frame")
                     continue
@@ -727,7 +732,7 @@ class YoloServer(Node):
                         feedback.bottom_right = bottom_right
                         feedback.pose = PoseStamped()
 
-                        waypoint = self.calc_detection_point(cam_idx, bbox_dims, xc, yc)
+                        waypoint = self.calc_detection_point(cam_idx, bbox_dims, xc, yc, frame_time_stamp)
                         if waypoint:
                             feedback.pose = waypoint
 

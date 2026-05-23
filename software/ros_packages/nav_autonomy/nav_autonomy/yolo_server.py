@@ -14,15 +14,12 @@ import os
 from nav_autonomy_interface.action import YoloFind
 from nav_autonomy_interface.srv import SwitchCamera
 import ultralytics.hub.utils as hub_utils
-<<<<<<< HEAD
 
 # TF2
 from tf2_ros import Buffer, TransformListener
 import tf2_geometry_msgs
 from geometry_msgs.msg import PoseStamped
 from builtin_interfaces.msg import Time
-=======
->>>>>>> 497b358 (testing and debugging fixes, aruco dev)
 
 # TF2
 from tf2_ros import Buffer, TransformListener
@@ -303,11 +300,7 @@ class YoloServer(Node):
             PoseStamped in base_link frame
         """
         # Select appropriate camera frame
-<<<<<<< HEAD
         camera_frame = self.left_camera_frame if self.detected_camera_id == 0 else self.right_camera_frame
-=======
-        camera_frame = self.left_camera_frame if camera_id == 1 else self.right_camera_frame
->>>>>>> 497b358 (testing and debugging fixes, aruco dev)
         
         try:
             # Get transform from camera to base_link
@@ -328,7 +321,6 @@ class YoloServer(Node):
             # Transform to base_link
             pose_base = tf2_geometry_msgs.do_transform_pose_stamped(pose_camera, transform)
             pose_base.header.stamp = Time()
-<<<<<<< HEAD
 
             # Remove camera frame rotation and place point on ground
             pose_base.pose.position.z = 0.0
@@ -336,9 +328,6 @@ class YoloServer(Node):
             pose_base.pose.orientation.y = 0.0
             pose_base.pose.orientation.z = 0.0
             pose_base.pose.orientation.w = 1.0
-=======
-            pose_base.pose.position.z = 0.0
->>>>>>> 497b358 (testing and debugging fixes, aruco dev)
             return pose_base
             
         except Exception as e:
@@ -364,11 +353,7 @@ class YoloServer(Node):
         # focal_length can be approximated from camera matrix
         focal_length = (self.left_camera_matrix[0, 0] + self.left_camera_matrix[1, 1]) / 2
         
-<<<<<<< HEAD
         estimated_depth = ((known_object_size * focal_length) / bbox_size)
-=======
-        estimated_depth = ((known_object_size * focal_length) / bbox_size)/3
->>>>>>> 497b358 (testing and debugging fixes, aruco dev)
         
         return estimated_depth
     
@@ -551,10 +536,7 @@ class YoloServer(Node):
         detector = cv2.aruco.ArucoDetector(arucoDict, arucoParams)
         
         cap = cv2.VideoCapture(self.source, cv2.CAP_V4L2)
-<<<<<<< HEAD
         cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)             # Limit buffer size to guarantee synced muxing frames
-=======
->>>>>>> 497b358 (testing and debugging fixes, aruco dev)
 
         marker_length = 0.2  # meters
         cam_idx = 0
@@ -602,13 +584,9 @@ class YoloServer(Node):
                         dist_coeffs
                     )
                     x, y, z = tvecs[0] 
-<<<<<<< HEAD
 
                     self.get_logger().warn("Pose: {}".format(tvecs[0]))
                     self.get_logger().warn("Cam: {}".format(cam_idx))
-=======
-                    self.get_logger().warn("Pose: {}".format(tvecs[0]))
->>>>>>> 497b358 (testing and debugging fixes, aruco dev)
 
 
                     # Transform to map frame
@@ -622,10 +600,7 @@ class YoloServer(Node):
                         continue
                         
                     self.get_logger().info(f"Waypoint: {pose}")
-<<<<<<< HEAD
                     self.pose_marker_logging(pose)
-=======
->>>>>>> 497b358 (testing and debugging fixes, aruco dev)
 
                     feedback = YoloFind.Feedback()
                     feedback.detected = True

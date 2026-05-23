@@ -315,19 +315,12 @@ def generate_launch_description():
     robot_state_publisher_node = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
-<<<<<<< HEAD
-        parameters=[{
-            'use_sim_time': "False",
-            "robot_description": moveit_config.robot_description
-        }],
-=======
         parameters=[
             moveit_config.robot_description,
             {
-            'use_sim_time': use_sim_time,
-            }
-        ],
->>>>>>> 7823e19 (added readme's and final demo params)
+            'use_sim_time': False,},
+            moveit_config.robot_description,
+            ],
         output="screen",
         condition=IfCondition(launch_ros2_control)
     )

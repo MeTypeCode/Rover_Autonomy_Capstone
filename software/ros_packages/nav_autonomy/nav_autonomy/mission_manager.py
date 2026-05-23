@@ -21,22 +21,13 @@ from nav_autonomy_interface.action import Mission, YoloFind
 from nav_autonomy.utils.search_fsm import SearchFSM, SearchState, SearchPattern
 
 
-def get_yaw_from_quaternion(q) -> float:
-    siny_cosp = 2.0 * (q.w * q.z + q.x * q.y)
-    cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
-    return math.atan2(siny_cosp, cosy_cosp)
-
-
 class MissionManager(Node):
     def __init__(self):
         super().__init__('mission_manager')
-
         self.callback_group = ReentrantCallbackGroup()
-
         self.navigator = BasicNavigator("basic_navigator")
         self.fromLL_client = self.navigator.create_client(FromLL, '/fromLL')
 
-        self.current_pose: PoseStamped = None
 
         # FIX: These should be parameters in a config or set via goal request.
         self.confidence_threshold_investigate = 0.5 
@@ -58,6 +49,7 @@ class MissionManager(Node):
             'YoloFind',
             callback_group=self.callback_group
         )
+        self.latest_yolo_feedback = None
 
         self.search_fsm = SearchFSM(
             node=self, 
@@ -68,24 +60,18 @@ class MissionManager(Node):
             debug_markers=True
         )
 
-        self.pose_sub = self.create_subscription(
-            Odometry,
-            '/odometry/global',  
-            self._pose_callback,
-            10
-        )
-
-        self.latest_yolo_feedback = None
         # self.fsm_timer = self.create_timer(0.2, self._fsm_tick)
+        self._state_to_feedback_map = {
+            SearchState.MOVING_TO_START: (Mission.Feedback.NAVIGATING, Mission.Feedback.IN_PROGRESS),
+            SearchState.SEARCHING: (Mission.Feedback.SEARCHING, Mission.Feedback.IN_PROGRESS),
+            SearchState.WAITING_FOR_NAV_IDLE: (Mission.Feedback.ALIGNING, Mission.Feedback.IN_PROGRESS),
+            SearchState.INVESTIGATING: (Mission.Feedback.INVESTIGATING, Mission.Feedback.IN_PROGRESS),
+            SearchState.SUCCESS: (Mission.Feedback.NO_ACTION, Mission.Feedback.COMPLETED),
+            SearchState.FAILED: (Mission.Feedback.NO_ACTION, Mission.Feedback.FAILED),
+            SearchState.STOPPED: (Mission.Feedback.NO_ACTION, Mission.Feedback.NOT_STARTED),
+        }
 
         self.get_logger().info('MissionManager action server ready.')
-
-
-    def _pose_callback(self, msg):
-        pose = PoseStamped()
-        pose.header = msg.header
-        pose.pose = msg.pose.pose
-        self.current_pose = pose
 
 
     def _fsm_tick(self):
@@ -268,45 +254,10 @@ class MissionManager(Node):
 
         # Map FSM state to Action feedback
         fsm_state = self.search_fsm.get_state()
-
-        if fsm_state == SearchState.MOVING_TO_START:
-            fb.current_action = Mission.Feedback.NAVIGATING
-            fb.completion_status = Mission.Feedback.IN_PROGRESS
-
-        elif fsm_state == SearchState.SEARCHING:
-            fb.current_action = Mission.Feedback.SEARCHING
-            fb.completion_status = Mission.Feedback.IN_PROGRESS
-
-        elif fsm_state == SearchState.WAITING_FOR_NAV_IDLE:
-            fb.current_action = Mission.Feedback.ALIGNING
-            fb.completion_status = Mission.Feedback.IN_PROGRESS
-
-        elif fsm_state == SearchState.INVESTIGATING:
-            fb.current_action = Mission.Feedback.INVESTIGATING
-            fb.completion_status = Mission.Feedback.IN_PROGRESS
-
-        elif fsm_state == SearchState.SUCCESS:
-            fb.current_action = Mission.Feedback.NO_ACTION
-            fb.completion_status = Mission.Feedback.COMPLETED
-
-        elif fsm_state == SearchState.FAILED:
-            fb.current_action = Mission.Feedback.NO_ACTION
-            fb.completion_status = Mission.Feedback.FAILED
-            
-        elif fsm_state == SearchState.STOPPED:
-            fb.current_action = Mission.Feedback.NO_ACTION
-            fb.completion_status = Mission.Feedback.NOT_STARTED
-
-        if self.current_pose:
-            fb.current_x = self.current_pose.pose.position.x
-            fb.current_y = self.current_pose.pose.position.y
-            yaw_rad = get_yaw_from_quaternion(self.current_pose.pose.orientation)
-            fb.current_heading = math.degrees(yaw_rad)
-        else:
-            fb.current_x = 0.0
-            fb.current_y = 0.0
-            fb.current_heading = 0.0
-
+        fb.current_state, fb.mission_status = self._state_to_feedback_map.get(
+            fsm_state, 
+            (Mission.Feedback.NO_ACTION, Mission.Feedback.IN_PROGRESS)
+        )
         return fb
     
 

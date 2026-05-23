@@ -15,7 +15,7 @@ class SearchPattern(Enum):
 
 
 class SearchState(Enum):
-    IDLE = auto()
+    IDLE = 0
     MOVING_TO_START = auto()
     SEARCHING = auto()
     WAITING_FOR_NAV_IDLE = auto()
@@ -23,6 +23,7 @@ class SearchState(Enum):
     RETURNING_TO_SEARCH = auto()
     SUCCESS = auto()
     FAILED = auto()
+    RETURNING_HOME = auto()
     STOPPED = auto()
 
 

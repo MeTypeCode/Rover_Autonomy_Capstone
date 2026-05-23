@@ -13,19 +13,6 @@ def generate_launch_description():
     left_calib = os.path.join(pkg_share, 'calibration', 'camera_left_chassis', 'calibration_data.yaml')
     right_calib = os.path.join(pkg_share, 'calibration', 'camera_right_chassis', 'calibration_data.yaml')
     
-#    realsense_launch_nav = Node(
-#        package='realsense2_camera',
-#        executable='realsense2_camera_node',
-#        name='d455',
-#        parameters=[{
-#            "camera_name": "d455",
-#            
-#            "pointcloud.enable": True,
-#            "align_depth.enable": True,
-#            "serial_no":"318122302525",
-#        }],
-#        output='screen'
-#    )
     realsense_launch_nav = Node(
         package='realsense2_camera',
         executable='realsense2_camera_node',
@@ -266,7 +253,7 @@ def generate_launch_description():
 
 
     return LaunchDescription([
-#        realsense_launch_nav,
+       realsense_launch_nav,
 #        ir_camera_node,
 #        ir_camera_node,
 #        main_nav_node,
@@ -279,8 +266,5 @@ def generate_launch_description():
         # pan_tilt_cam_node,
         muxing_node,
         # d405_node,
-        # chassis_right_cam_node,
-        # chassis_left_cam_node,
-        # muxing_node
     ])
 

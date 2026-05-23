@@ -21,12 +21,6 @@ import tf2_geometry_msgs
 from geometry_msgs.msg import PoseStamped
 from builtin_interfaces.msg import Time
 
-# TF2
-from tf2_ros import Buffer, TransformListener
-import tf2_geometry_msgs
-from geometry_msgs.msg import PoseStamped
-from builtin_interfaces.msg import Time
-
 # YOLO specific
 from ultralytics import YOLO
 from collections import deque
@@ -300,7 +294,7 @@ class YoloServer(Node):
             PoseStamped in base_link frame
         """
         # Select appropriate camera frame
-        camera_frame = self.left_camera_frame if self.detected_camera_id == 0 else self.right_camera_frame
+        camera_frame = self.left_camera_frame if camera_id == 0 else self.right_camera_frame
         
         try:
             # Get transform from camera to base_link

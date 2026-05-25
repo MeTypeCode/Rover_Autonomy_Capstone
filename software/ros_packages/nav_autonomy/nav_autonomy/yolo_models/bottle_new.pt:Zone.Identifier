@@ -1,0 +1,4 @@
+[ZoneTransfer]
+ZoneId=3
+ReferrerUrl=https://submit-b.hpc.engr.oregonstate.edu/pun/sys/dashboard/files/fs//nfs/stak/users/ojhat/hpc-share/Unity-Rover-Object-Detection/object_detection/runs/detect/runs/train/BOTTLE-RETRAIN/weights
+HostUrl=https://submit-b.hpc.engr.oregonstate.edu/pun/sys/dashboard/files/fs//nfs/stak/users/ojhat/hpc-share/Unity-Rover-Object-Detection/object_detection/runs/detect/runs/train/BOTTLE-RETRAIN/weights/last.pt

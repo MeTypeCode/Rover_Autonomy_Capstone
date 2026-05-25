@@ -16,6 +16,7 @@ from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import NavSatFix
 from nav_msgs.msg import Odometry
+from rover2_status_interface.msg import LED
 
 from nav_autonomy_interface.action import Mission, YoloFind
 from nav_autonomy.utils.search_fsm import SearchFSM, SearchState, SearchPattern
@@ -70,6 +71,8 @@ class MissionManager(Node):
             SearchState.FAILED: (Mission.Feedback.NO_ACTION, Mission.Feedback.FAILED),
             SearchState.STOPPED: (Mission.Feedback.NO_ACTION, Mission.Feedback.NOT_STARTED),
         }
+
+        self.led_pub =self.callback_group.create_publisher(LED, '/autonomous_LED/color', 10)
 
         self.get_logger().info('MissionManager action server ready.')
 
@@ -223,14 +226,18 @@ class MissionManager(Node):
             # ==============================
             result = Mission.Result()
             final_state = self.search_fsm.get_state()
-
+            led_msg = LED()
             if final_state == SearchState.SUCCESS:
                 self.get_logger().info('Mission succeeded')
+                led_msg.red, led_msg.green, led_msg.blue = 0, 255, 0
+                self.led_pub.publish(led_msg)
                 goal_handle.succeed()
                 result.ack = Mission.Result.SUCCESS
                 # TODO: Send back detection frame?
             else:
                 self.get_logger().info(f'Mission stopped with state: {final_state.name}')
+                led_msg.red, led_msg.green, led_msg.blue = 255, 0, 0
+                self.led_pub.publish(led_msg)
                 goal_handle.abort()
                 result.ack = Mission.Result.FAILED
 

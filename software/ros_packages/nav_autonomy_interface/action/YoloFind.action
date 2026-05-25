@@ -7,6 +7,7 @@ uint16 BOTTLE=1
 uint16 OG_HAMMER=2
 uint16 ORANGE_HAMMER=3
 uint16 ARUCO=4 
+uint16 ALL=5
 
 float32 confidence_threshold
 

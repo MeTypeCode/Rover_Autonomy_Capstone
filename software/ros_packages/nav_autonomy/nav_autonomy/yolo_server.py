@@ -667,11 +667,13 @@ class YoloServer(Node):
             # Define model from action request
             model = YOLO(os.path.join(self.models_dir, "mallet.pt"))
             if goal_handle.request.search_object == YoloFind.Goal.BOTTLE:
-                model = YOLO(os.path.join(self.models_dir, "bottle_retrain.pt"))
+                model = YOLO(os.path.join(self.models_dir, "bottle_new.pt"))
             elif goal_handle.request.search_object == YoloFind.Goal.ORANGE_HAMMER:
-                model = YOLO(os.path.join(self.models_dir, "hammer_retrain.pt"))
+                model = YOLO(os.path.join(self.models_dir, "hammer_new.pt"))
             elif goal_handle.request.search_object == YoloFind.Goal.OG_HAMMER:
-                model = YOLO(os.path.join(self.models_dir, "rockhammer_retrain.pt"))
+                model = YOLO(os.path.join(self.models_dir, "rockhammer_new.pt"))
+            elif goal_handle.request.search_object == YoloFind.Goal.ALL:
+                model = YOLO(os.path.join(self.models_dir, "all_objects.pt"))
             model.overrides["verbose"] = False
 
             cap = cv2.VideoCapture(self.source, cv2.CAP_V4L2)

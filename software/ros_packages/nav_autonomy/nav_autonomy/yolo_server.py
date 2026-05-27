@@ -174,6 +174,8 @@ class YoloServer(Node):
         self.max_frames = self.get_parameter("max_frames").value
         self.check_frames = self.get_parameter("check_frames").value
 
+        self.model_path = "batch-4"
+
     def switch_camera(self, cam_idx):
         if not self.switch_camera_client.wait_for_service(timeout_sec=5.0):
             self.get_logger().warn(
@@ -665,13 +667,14 @@ class YoloServer(Node):
 
         try:
             # Define model from action request
+            self.models_dir = os.path.join(self.models_dir, self.models_path)
             model = YOLO(os.path.join(self.models_dir, "mallet.pt"))
             if goal_handle.request.search_object == YoloFind.Goal.BOTTLE:
-                model = YOLO(os.path.join(self.models_dir, "bottle_new.pt"))
+                model = YOLO(os.path.join(self.models_dir, "bottle.pt"))
             elif goal_handle.request.search_object == YoloFind.Goal.ORANGE_HAMMER:
-                model = YOLO(os.path.join(self.models_dir, "hammer_new.pt"))
+                model = YOLO(os.path.join(self.models_dir, "hammer.pt"))
             elif goal_handle.request.search_object == YoloFind.Goal.OG_HAMMER:
-                model = YOLO(os.path.join(self.models_dir, "rockhammer_new.pt"))
+                model = YOLO(os.path.join(self.models_dir, "rockhammer.pt"))
             elif goal_handle.request.search_object == YoloFind.Goal.ALL:
                 model = YOLO(os.path.join(self.models_dir, "all_objects.pt"))
             model.overrides["verbose"] = False
